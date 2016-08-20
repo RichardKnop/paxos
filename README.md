@@ -1,2 +1,3 @@
 # paxos
-Golang implentation of paxos consensus algorithm
+
+Golang implentation of [Paxos](https://pdos.csail.mit.edu/6.824/papers/paxos-simple.pdf) consensus algorithm.
