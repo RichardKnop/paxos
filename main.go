@@ -29,8 +29,8 @@ func main() {
 	// Set the CLI app commands
 	cliApp.Commands = []cli.Command{
 		{
-			Name:  "runagent",
-			Usage: "runs agent",
+			Name:  "run",
+			Usage: "runs an agent (which acts as proposer, acceptor and learner)",
 			Flags: []cli.Flag{
 				cli.IntFlag{
 					Name:  "port",
