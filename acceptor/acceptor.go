@@ -37,7 +37,7 @@ func (a *Acceptor) ToString() string {
 // (if any) that it has accepted.
 func (a *Acceptor) receivePrepare(proposal *models.Proposal) (*models.Proposal, error) {
 	// Ignore lesser proposals
-	if a.promisedProposal.Number >= proposal.Number {
+	if a.promisedProposal != nil && a.promisedProposal.Number >= proposal.Number {
 		return nil, fmt.Errorf(
 			"%s promised to accept %s which is >= than requested %s",
 			a.ToString(),
@@ -62,7 +62,7 @@ func (a *Acceptor) receivePrepare(proposal *models.Proposal) (*models.Proposal, 
 // request having a number greater than n.
 func (a *Acceptor) receiveProposal(proposal *models.Proposal) (*models.Proposal, error) {
 	// Ignore lesser proposals
-	if a.promisedProposal.Number > proposal.Number {
+	if a.promisedProposal != nil && a.promisedProposal.Number > proposal.Number {
 		return nil, fmt.Errorf(
 			"%s promised to accept %s which is >= than requested %s",
 			a.ToString(),
@@ -72,7 +72,7 @@ func (a *Acceptor) receiveProposal(proposal *models.Proposal) (*models.Proposal,
 	}
 
 	// Unexpected proposal
-	if a.promisedProposal.Number < proposal.Number {
+	if a.promisedProposal != nil && a.promisedProposal.Number < proposal.Number {
 		return nil, fmt.Errorf(
 			"%s received unexpected proposal %d",
 			a.ToString(),

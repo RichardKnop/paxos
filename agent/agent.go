@@ -23,7 +23,7 @@ type Agent struct {
 // New returns new Agent instance
 func New(id string, host string, port int, peers []string) (*Agent, error) {
 	if id == "" {
-		id = fmt.Sprintf("agent_%s", uuid.New())
+		id = uuid.New()
 	}
 	if host == "" {
 		host = "127.0.0.1"
@@ -59,10 +59,11 @@ func (a *Agent) Run() error {
 
 	// Agent is proposer
 	proposedValue := a.getAddress()
-	_, err = proposer.New(a.id, a.host, a.port, proposedValue, a.peers)
+	proposer, err := proposer.New(a.id, a.host, a.port, proposedValue, a.peers)
 	if err != nil {
 		return fmt.Errorf("New Proposer: %v", err)
 	}
+	go proposer.Run()
 
 	log.Printf("Starting agent ID: %s\n", a.id)
 	log.Printf("Listening on: %s\n", a.getAddress())

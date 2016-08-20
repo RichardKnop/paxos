@@ -4,6 +4,13 @@ import (
 	"github.com/RichardKnop/paxos/models"
 )
 
+const (
+	// PrepareServiceMethod ...
+	PrepareServiceMethod = "RPC.Prepare"
+	// ProposeServiceMethod ...
+	ProposeServiceMethod = "RPC.Propose"
+)
+
 // RPC ...
 type RPC struct {
 	acceptor *Acceptor
