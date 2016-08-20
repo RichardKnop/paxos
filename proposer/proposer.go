@@ -1,6 +1,7 @@
 package proposer
 
 import (
+	"fmt"
 	"log"
 	"net/rpc"
 
@@ -9,20 +10,20 @@ import (
 
 // Proposer ...
 type Proposer struct {
-	id               string
-	host             string
-	port             int
+	ID               string
+	Host             string
+	Port             int
 	proposal         *models.Proposal
 	acceptors        []string
 	acceptorPromises map[string]*models.Proposal
 }
 
 // New returns new Proposer instance
-func New(id, host string, port int, proposedValue string, acceptors []string) (*Proposer, error) {
+func New(ID, host string, port int, proposedValue string, acceptors []string) (*Proposer, error) {
 	return &Proposer{
-		id:   id,
-		host: host,
-		port: port,
+		ID:   ID,
+		Host: host,
+		Port: port,
 		proposal: &models.Proposal{
 			Value: proposedValue,
 		},
@@ -31,20 +32,21 @@ func New(id, host string, port int, proposedValue string, acceptors []string) (*
 	}, nil
 }
 
+// ToString returns a human readable representation
+func (p *Proposer) ToString() string {
+	return fmt.Sprintf("Proposer %s (%s:%d)", p.ID, p.Host, p.Port)
+}
+
 // Run ...
 func (p *Proposer) Run() {
 	// Stage 1: Prepare proposals until majority is reached
 	for !p.majorityReached() {
 		p.prepare()
 	}
-	log.Printf("Reached majority %d", p.majority())
+	log.Printf("%s reached majority %d", p.ToString(), p.majority())
 
 	// Stage 2: Finalise proposal
-	log.Printf(
-		"Starting to propose [%d: %s]",
-		p.proposal.Number,
-		p.proposal.Value,
-	)
+	log.Printf("%s is proposing final proposal [%d: %s]", p.ToString(), p.proposal.Number, p.proposal.Value)
 	p.propose()
 }
 
@@ -56,36 +58,30 @@ func (p *Proposer) prepare() {
 	p.proposal.Number++
 
 	for i := 0; i < p.majority(); i++ {
-		promised, err := p.sendPrepareRequest(p.acceptors[i], p.proposal)
+		acceptor := p.acceptors[i]
+
+		promise, err := p.sendPrepareRequest(acceptor, p.proposal)
 		if err != nil {
 			log.Printf("Send Prepared Proposal: %v", err)
 			continue
 		}
-		log.Printf(
-			"Acceptor %s returned promise [%d, %s]",
-			p.acceptors[i],
-			promised.Number,
-			promised.Value,
-		)
+		log.Printf("%s received promise %s from %s", p.ToString(), promise.ToString(), acceptor)
 
-		previusPromise := p.acceptorPromises[p.acceptors[i]]
-		if previusPromise.Number < promised.Number {
-			log.Printf(
-				"Received a new promise [%d, %s]",
-				promised.Number,
-				promised.Value,
-			)
-			p.acceptorPromises[p.acceptors[i]] = promised
+		// Get the previous promise
+		previousPromise := p.acceptorPromises[acceptor]
 
-			// Update the proposal to the one with bigger number
-			if promised.Number > p.proposal.Number {
-				log.Printf(
-					"Updating the proposal to [%d, %s]",
-					promised.Number,
-					promised.Value,
-				)
-				p.proposal = promised
-			}
+		// Previous promise is euqual or greater than the new proposal, ignore
+		if previousPromise != nil && promise.Number >= previousPromise.Number {
+			continue
+		}
+
+		// Log the new promise
+		p.acceptorPromises[acceptor] = promise
+
+		// Update the proposal to the one with bigger number
+		if promise.Number > p.proposal.Number {
+			log.Printf("%s updated the proposal to %s", p.ToString(), promise.ToString())
+			p.proposal = promise
 		}
 	}
 }
@@ -135,7 +131,7 @@ func (p *Proposer) sendPrepareRequest(address string, proposal *models.Proposal)
 	}
 
 	var reply *models.Proposal
-	err = client.Call("Acceptor.Prepare", proposal, &reply)
+	err = client.Call("RPC.Prepare", proposal, &reply)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +147,7 @@ func (p *Proposer) sendProposeRequest(address string, proposal *models.Proposal)
 	}
 
 	var reply *models.Proposal
-	err = client.Call("Acceptor.Propose", proposal, &reply)
+	err = client.Call("RPC.Propose", proposal, &reply)
 	if err != nil {
 		return nil, err
 	}

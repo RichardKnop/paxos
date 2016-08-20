@@ -49,8 +49,12 @@ func (a *Agent) Run() error {
 	if err != nil {
 		return fmt.Errorf("New Acceptor: %v", err)
 	}
-	if err := rpc.Register(acceptor); err != nil {
-		return fmt.Errorf("RPC Register acceptor: %v", err)
+	acceptorRPC, err := acceptor.NewRPC()
+	if err != nil {
+		return fmt.Errorf("New Acceptor RPC: %v", err)
+	}
+	if err := rpc.Register(acceptorRPC); err != nil {
+		return fmt.Errorf("Register Acceptor RPC: %v", err)
 	}
 
 	// Agent is proposer
