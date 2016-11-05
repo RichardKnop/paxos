@@ -18,12 +18,10 @@ type RPC struct {
 
 // NewRPC returns new RPC instance
 func (a *Acceptor) NewRPC() (*RPC, error) {
-	return &RPC{
-		acceptor: a,
-	}, nil
+	return &RPC{acceptor: a}, nil
 }
 
-// Prepare ...
+// Prepare handles received preparation request from proposers
 func (r *RPC) Prepare(proposal *models.Proposal, reply *models.Proposal) error {
 	proposal, err := r.acceptor.receivePrepare(proposal)
 	if err != nil {
@@ -33,7 +31,7 @@ func (r *RPC) Prepare(proposal *models.Proposal, reply *models.Proposal) error {
 	return nil
 }
 
-// Propose ...
+// Propose handles received proposal request from proposers
 func (r *RPC) Propose(proposal *models.Proposal, reply *models.Proposal) error {
 	proposal, err := r.acceptor.receiveProposal(proposal)
 	if err != nil {

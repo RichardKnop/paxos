@@ -9,19 +9,21 @@ import (
 
 // Acceptor ...
 type Acceptor struct {
-	ID               string
-	Host             string
-	Port             int
-	promisedProposal *models.Proposal
-	acceptedProposal *models.Proposal
+	ID                string
+	Host              string
+	Port              int
+	promisedProposals map[string]*models.Proposal
+	acceptedProposals map[string]*models.Proposal
 }
 
 // New returns new Acceptor instance
 func New(ID, host string, port int) (*Acceptor, error) {
 	return &Acceptor{
-		ID:   ID,
-		Host: host,
-		Port: port,
+		ID:                ID,
+		Host:              host,
+		Port:              port,
+		promisedProposals: make(map[string]*models.Proposal, 0),
+		acceptedProposals: make(map[string]*models.Proposal, 0),
 	}, nil
 }
 
@@ -36,57 +38,63 @@ func (a *Acceptor) ToString() string {
 // proposals numbered less than n and with the highest-numbered proposal
 // (if any) that it has accepted.
 func (a *Acceptor) receivePrepare(proposal *models.Proposal) (*models.Proposal, error) {
-	// Ignore lesser proposals
-	if a.promisedProposal != nil && a.promisedProposal.Number >= proposal.Number {
+	// Do we already have a promise for this proposal
+	promised, ok := a.promisedProposals[proposal.Key]
+
+	// Ignore lesser or equally numbered proposals
+	if ok && promised.Number >= proposal.Number {
 		return nil, fmt.Errorf(
 			"%s promised to accept %s which is >= than requested %s",
 			a.ToString(),
-			a.promisedProposal.ToString(),
+			promised.ToString(),
 			proposal.ToString(),
 		)
 	}
 
 	// Promise to accept the proposal
-	a.promisedProposal = proposal
+	a.promisedProposals[proposal.Key] = proposal
 	log.Printf(
 		"%s promises to accept proposal %s",
 		a.ToString(),
-		a.promisedProposal.ToString(),
+		proposal.ToString(),
 	)
 
-	return a.promisedProposal, nil
+	return proposal, nil
 }
 
 // If an acceptor receives an accept request for a proposal numbered
 // n, it accepts the proposal unless it has already responded to a prepare
 // request having a number greater than n.
 func (a *Acceptor) receiveProposal(proposal *models.Proposal) (*models.Proposal, error) {
-	// Ignore lesser proposals
-	if a.promisedProposal != nil && a.promisedProposal.Number > proposal.Number {
+	// Do we already have a promise for this proposal
+	promised, ok := a.promisedProposals[proposal.Key]
+
+	// Ignore lesser or equally numbered proposals
+	if ok && promised.Number >= proposal.Number {
 		return nil, fmt.Errorf(
 			"%s promised to accept %s which is >= than requested %s",
 			a.ToString(),
-			a.promisedProposal.ToString(),
+			promised.ToString(),
 			proposal.ToString(),
 		)
 	}
 
 	// Unexpected proposal
-	if a.promisedProposal != nil && a.promisedProposal.Number < proposal.Number {
+	if ok && promised.Number < proposal.Number {
 		return nil, fmt.Errorf(
-			"%s received unexpected proposal %d",
+			"%s received unexpected proposal %s",
 			a.ToString(),
 			proposal.ToString(),
 		)
 	}
 
 	// Accept the proposal
-	a.acceptedProposal = proposal
+	a.acceptedProposals[proposal.Key] = proposal
 	log.Printf(
 		"%s accepted proposal %s",
 		a.ToString(),
-		a.acceptedProposal.ToString(),
+		proposal.ToString(),
 	)
 
-	return a.acceptedProposal, nil
+	return proposal, nil
 }

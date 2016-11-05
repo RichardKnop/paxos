@@ -8,44 +8,45 @@ import (
 	"net/rpc"
 
 	"github.com/RichardKnop/paxos/acceptor"
+	"github.com/RichardKnop/paxos/models"
 	"github.com/RichardKnop/paxos/proposer"
 	"github.com/RichardKnop/uuid"
 )
 
 // Agent ...
 type Agent struct {
-	id    string
-	host  string
-	port  int
-	peers []string
+	ID    string
+	Host  string
+	Port  int
+	Peers []string
 }
 
 // New returns new Agent instance
-func New(id string, host string, port int, peers []string) (*Agent, error) {
-	if id == "" {
-		id = uuid.New()
+func New(theID string, host string, port int, peers []string) (*Agent, error) {
+	if theID == "" {
+		theID = uuid.New()
 	}
 	if host == "" {
 		host = "127.0.0.1"
 	}
 	return &Agent{
-		id:    id,
-		host:  host,
-		port:  port,
-		peers: peers,
+		ID:    theID,
+		Host:  host,
+		Port:  port,
+		Peers: peers,
 	}, nil
 }
 
 // Run ...
 func (a *Agent) Run() error {
 	// Start RPC server
-	listener, err := net.Listen("tcp", a.getAddress())
+	listener, err := net.Listen("tcp", a.GetAddress())
 	if err != nil {
 		return fmt.Errorf("TCP Listen: %v", err)
 	}
 
 	// Agent is acceptor
-	acceptor, err := acceptor.New(a.id, a.host, a.port)
+	acceptor, err := acceptor.New(a.ID, a.Host, a.Port)
 	if err != nil {
 		return fmt.Errorf("New Acceptor: %v", err)
 	}
@@ -53,26 +54,28 @@ func (a *Agent) Run() error {
 	if err != nil {
 		return fmt.Errorf("New Acceptor RPC: %v", err)
 	}
-	if err := rpc.Register(acceptorRPC); err != nil {
+	if err = rpc.Register(acceptorRPC); err != nil {
 		return fmt.Errorf("Register Acceptor RPC: %v", err)
 	}
 
-	// Agent is proposer
-	proposedValue := a.getAddress()
-	proposer, err := proposer.New(a.id, a.host, a.port, proposedValue, a.peers)
+	log.Printf("Starting agent ID: %s\n", a.ID)
+	log.Printf("Listening on: %s\n", a.GetAddress())
+	log.Printf("Peers: %s\n", a.Peers)
+
+	rpc.HandleHTTP()
+
+	// Agent will propose its own address to all peers,
+	// we want to reach a consensus on who the cluster leader is
+	proposer, err := proposer.New(a.ID, a.Host, a.Port, a.Peers)
 	if err != nil {
 		return fmt.Errorf("New Proposer: %v", err)
 	}
-	go proposer.Run()
+	go proposer.Propose(models.NewProposal("leader", a.GetAddress()))
 
-	log.Printf("Starting agent ID: %s\n", a.id)
-	log.Printf("Listening on: %s\n", a.getAddress())
-	log.Printf("Peers: %s\n", a.peers)
-
-	rpc.HandleHTTP()
 	return http.Serve(listener, nil)
 }
 
-func (a *Agent) getAddress() string {
-	return fmt.Sprintf("%s:%d", a.host, a.port)
+// GetAddress concatenates host and port
+func (a *Agent) GetAddress() string {
+	return fmt.Sprintf("%s:%d", a.Host, a.Port)
 }
