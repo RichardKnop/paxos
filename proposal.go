@@ -1,4 +1,4 @@
-package models
+package paxos
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ func NewProposal(key, value string) *Proposal {
 	return &Proposal{Key: key, Value: value}
 }
 
-// ToString returns a human readable representation
-func (p *Proposal) ToString() string {
+// String returns a human readable representation
+func (p *Proposal) String() string {
 	return fmt.Sprintf("[%d, %s]", p.Number, p.Value)
 }

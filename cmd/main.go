@@ -1,11 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
-	"github.com/RichardKnop/paxos/agent"
+	"github.com/RichardKnop/paxos"
 	"github.com/urfave/cli"
 )
 
@@ -48,15 +47,12 @@ func main() {
 				if len(c.StringSlice("peers")) == 0 {
 					return cli.NewExitError("Set at least one peer", 1)
 				}
-				agent, err := agent.New(
+				agent := paxos.NewAgent(
 					"", // ID
 					"", // host
 					c.Int("port"),
 					c.StringSlice("peers"),
 				)
-				if err != nil {
-					return cli.NewExitError(fmt.Sprintf("New Agent: %v", err), 1)
-				}
 				return agent.Run()
 			},
 		},

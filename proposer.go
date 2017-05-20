@@ -1,56 +1,49 @@
-package proposer
+package paxos
 
 import (
 	"fmt"
 	"log"
 	"net/rpc"
-
-	"github.com/RichardKnop/paxos/acceptor"
-	"github.com/RichardKnop/paxos/models"
 )
 
 // Proposer proposes new values to acceptors
 type Proposer struct {
-	ID               string
-	Host             string
-	Port             int
+	Node
 	acceptorURLs     []string
-	acceptorPromises map[string]map[string]*models.Proposal
+	acceptorPromises map[string]map[string]*Proposal
 }
 
-// New returns new Proposer instance
-func New(theID, host string, port int, acceptorURLs []string) (*Proposer, error) {
+// NewProposer creates a new proposer instance
+func NewProposer(id, host string, port int, acceptorURLs []string) *Proposer {
 	acceptorURLs = append(acceptorURLs, fmt.Sprintf("%s:%d", host, port))
-	acceptorPromises := make(map[string]map[string]*models.Proposal, len(acceptorURLs))
+	acceptorPromises := make(map[string]map[string]*Proposal, len(acceptorURLs))
 	for _, acceptorURL := range acceptorURLs {
-		acceptorPromises[acceptorURL] = make(map[string]*models.Proposal, 0)
+		acceptorPromises[acceptorURL] = make(map[string]*Proposal)
 	}
 	return &Proposer{
-		ID:               theID,
-		Host:             host,
-		Port:             port,
+		Node:             NewNode(id, host, port),
 		acceptorURLs:     acceptorURLs,
 		acceptorPromises: acceptorPromises,
-	}, nil
+	}
 }
 
-// ToString returns a human readable representation
-func (p *Proposer) ToString() string {
+// String returns a human readable representation
+func (p *Proposer) String() string {
 	return fmt.Sprintf("Proposer %s (%s:%d)", p.ID, p.Host, p.Port)
 }
 
 // Propose sends a proposal request to the peers
-func (p *Proposer) Propose(proposal *models.Proposal) {
+func (p *Proposer) Propose(proposal *Proposal) {
 	// Stage 1: Prepare proposals until majority is reached
 	for !p.majorityReached(proposal) {
 		p.prepare(proposal)
 	}
-	log.Printf("%s reached majority %d", p.ToString(), p.majority())
+	log.Printf("%s reached majority %d", p, p.majority())
 
 	// Stage 2: Propose the value agreed on by majority of acceptors
 	log.Printf(
 		"%s is proposing final proposal [%s=%s (proposal number: %d)]",
-		p.ToString(),
+		p,
 		proposal.Key,
 		proposal.Value,
 		proposal.Number,
@@ -62,19 +55,19 @@ func (p *Proposer) Propose(proposal *models.Proposal) {
 // each member of some set of acceptors, asking it to respond with:
 // (a) A promise never again to accept a proposal numbered less than n, and
 // (b) The proposal with the highest number less than n that it has accepted, if any.
-func (p *Proposer) prepare(proposal *models.Proposal) {
+func (p *Proposer) prepare(proposal *Proposal) {
 	// Increment the proposal number
 	proposal.Number++
 
 	for i := 0; i < p.majority(); i++ {
 		acceptorURL := p.acceptorURLs[i]
 
-		promise, err := sendRPCRequest(acceptorURL, acceptor.PrepareServiceMethod, proposal)
+		promise, err := sendRPCRequest(acceptorURL, PrepareServiceMethod, proposal)
 		if err != nil {
 			log.Printf("Prepare request failed: %v", err)
 			continue
 		}
-		log.Printf("%s received promise %s from %s", p.ToString(), promise.ToString(), acceptorURL)
+		log.Printf("%s received promise %s from %s", p, promise, acceptorURL)
 
 		// Get the previous promise
 		previousPromise, ok := p.acceptorPromises[acceptorURL][proposal.Key]
@@ -89,7 +82,7 @@ func (p *Proposer) prepare(proposal *models.Proposal) {
 
 		// Update the proposal to the one with bigger number
 		if promise.Number > proposal.Number {
-			log.Printf("%s updated the proposal to %s", p.ToString(), promise.ToString())
+			log.Printf("%s updated the proposal to %s", p, promise)
 			proposal = promise
 		}
 	}
@@ -100,9 +93,9 @@ func (p *Proposer) prepare(proposal *models.Proposal) {
 // v, where v is the value of the highest-numbered proposal among the
 // responses, or is any value selected by the proposer if the responders
 // reported no proposals.
-func (p *Proposer) propose(proposal *models.Proposal) {
+func (p *Proposer) propose(proposal *Proposal) {
 	for _, acceptorURL := range p.acceptorURLs {
-		accepted, err := sendRPCRequest(acceptorURL, acceptor.ProposeServiceMethod, proposal)
+		accepted, err := sendRPCRequest(acceptorURL, ProposeServiceMethod, proposal)
 		if err != nil {
 			log.Printf("Propose request failed: %v", err)
 			continue
@@ -118,7 +111,7 @@ func (p *Proposer) majority() int {
 
 // majorityReached returns true if number of matching promises from acceptors
 // is equal or greater than simple majority of acceptor nodes
-func (p *Proposer) majorityReached(proposal *models.Proposal) bool {
+func (p *Proposer) majorityReached(proposal *Proposal) bool {
 	var matches = 0
 
 	// Iterate over promised values for each acceptor
@@ -140,13 +133,13 @@ func (p *Proposer) majorityReached(proposal *models.Proposal) bool {
 
 // sendRPCRequest is a generic function to make RPC call to acceptor's
 // prepare or promise service methods
-func sendRPCRequest(address, serviceMethod string, proposal *models.Proposal) (*models.Proposal, error) {
+func sendRPCRequest(address, serviceMethod string, proposal *Proposal) (*Proposal, error) {
 	client, err := rpc.DialHTTP("tcp", address)
 	if err != nil {
 		return nil, err
 	}
 
-	var reply *models.Proposal
+	var reply *Proposal
 	err = client.Call(serviceMethod, proposal, &reply)
 	if err != nil {
 		return nil, err
