@@ -38,3 +38,5 @@ test-with-coverage:
 		tail -n +2 coverage.out >> coverage-all.out; \
 	done;
 	#go tool cover -html=coverage-all.out
+
+ci: test
