@@ -16,7 +16,7 @@ func init() {
 	cliApp.Name = "paxos"
 	cliApp.Usage = "Paxos"
 	cliApp.Authors = []cli.Author{
-		cli.Author{
+		{
 			Name:  "Richard Knop",
 			Email: "risoknop@gmail.com",
 		},

@@ -19,5 +19,5 @@ func NewProposal(key, value string) *Proposal {
 
 // String returns a human readable representation
 func (p *Proposal) String() string {
-	return fmt.Sprintf("[%d, %s]", p.Number, p.Value)
+	return fmt.Sprintf("(num=%d, key=\"%s\", value=\"%s\")", p.Number, p.Key, p.Value)
 }

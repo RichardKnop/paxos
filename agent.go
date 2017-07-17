@@ -47,7 +47,11 @@ func (a *Agent) Run() error {
 	// Agent will propose its own address to all peers,
 	// we want to reach a consensus on who the cluster leader is
 	proposer := NewProposer(a.ID, a.Host, a.Port, a.Peers)
-	go proposer.Propose(NewProposal("leader", a.GetAddress()))
+	go func() {
+		if err := proposer.Propose(NewProposal("leader", a.GetAddress())); err != nil {
+			log.Print(err)
+		}
+	}()
 
 	return http.Serve(listener, nil)
 }

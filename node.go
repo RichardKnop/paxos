@@ -32,3 +32,8 @@ func NewNode(id string, host string, port int) Node {
 func (n *Node) GetAddress() string {
 	return fmt.Sprintf("%s:%d", n.Host, n.Port)
 }
+
+// String returns a human readable representation
+func (n *Node) String() string {
+	return n.GetAddress()
+}

@@ -28,11 +28,6 @@ func NewAcceptor(id, host string, port int) *Acceptor {
 	}
 }
 
-// String returns a human readable representation
-func (a *Acceptor) String() string {
-	return fmt.Sprintf("Acceptor %s (%s:%d)", a.ID, a.Host, a.Port)
-}
-
 // Prepare handles received preparation request from proposers
 func (a *Acceptor) Prepare(proposal *Proposal, reply *Proposal) error {
 	proposal, err := a.receivePrepare(proposal)
@@ -65,8 +60,7 @@ func (a *Acceptor) receivePrepare(proposal *Proposal) (*Proposal, error) {
 	// Ignore lesser or equally numbered proposals
 	if ok && promised.Number >= proposal.Number {
 		return nil, fmt.Errorf(
-			"%s already promised to accept %s which is >= than requested %s",
-			a,
+			"Already promised to accept %s which is >= than requested %s",
 			promised,
 			proposal,
 		)
@@ -74,7 +68,7 @@ func (a *Acceptor) receivePrepare(proposal *Proposal) (*Proposal, error) {
 
 	// Promise to accept the proposal
 	a.promisedProposals[proposal.Key] = proposal
-	log.Printf("%s promises to accept proposal %s", a, proposal)
+	log.Printf("Promising to accept proposal %s", proposal)
 
 	return proposal, nil
 }
@@ -86,11 +80,10 @@ func (a *Acceptor) receiveProposal(proposal *Proposal) (*Proposal, error) {
 	// Do we already have a promise for this proposal
 	promised, ok := a.promisedProposals[proposal.Key]
 
-	// Ignore lesser or equally numbered proposals
-	if ok && promised.Number >= proposal.Number {
+	// Ignore lesser numbered proposals
+	if ok && promised.Number > proposal.Number {
 		return nil, fmt.Errorf(
-			"%s already promised to accept %s which is >= than requested %s",
-			a,
+			"Already promised to accept %s which is > than requested %s",
 			promised,
 			proposal,
 		)
@@ -98,12 +91,11 @@ func (a *Acceptor) receiveProposal(proposal *Proposal) (*Proposal, error) {
 
 	// Unexpected proposal
 	if ok && promised.Number < proposal.Number {
-		return nil, fmt.Errorf("%s received unexpected proposal %s", a, proposal)
+		return nil, fmt.Errorf("Received unexpected proposal %s", proposal)
 	}
 
 	// Accept the proposal
 	a.acceptedProposals[proposal.Key] = proposal
-	log.Printf("%s accepted proposal %s", a, proposal)
 
 	return proposal, nil
 }
