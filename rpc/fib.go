@@ -1,4 +1,4 @@
-package paxos
+package rpc
 
 // Fibonacci returns successive Fibonacci numbers starting from 1
 func Fibonacci() func() int {

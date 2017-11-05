@@ -1,34 +1,24 @@
 package paxos
 
 import (
-	"fmt"
 	"log"
-	"net/rpc"
-	"time"
 )
 
 // Proposer proposes new values to acceptors
 type Proposer struct {
-	Node
-	acceptorURLs     []string
+	acceptorClients  []AcceptorClientInterface
 	acceptorPromises map[string]map[string]*Proposal
-	prepareFib       func() int
-	proposeFib       func() int
 }
 
 // NewProposer creates a new proposer instance
-func NewProposer(id, host string, port int, acceptorURLs []string) *Proposer {
-	acceptorURLs = append(acceptorURLs, fmt.Sprintf("%s:%d", host, port))
-	acceptorPromises := make(map[string]map[string]*Proposal, len(acceptorURLs))
-	for _, acceptorURL := range acceptorURLs {
-		acceptorPromises[acceptorURL] = make(map[string]*Proposal)
+func NewProposer(acceptorClients []AcceptorClientInterface) *Proposer {
+	acceptorPromises := make(map[string]map[string]*Proposal, len(acceptorClients))
+	for _, acceptorClient := range acceptorClients {
+		acceptorPromises[acceptorClient.GetName()] = make(map[string]*Proposal)
 	}
 	return &Proposer{
-		Node:             NewNode(id, host, port),
-		acceptorURLs:     acceptorURLs,
+		acceptorClients:  acceptorClients,
 		acceptorPromises: acceptorPromises,
-		prepareFib:       Fibonacci(),
-		proposeFib:       Fibonacci(),
 	}
 }
 
@@ -57,24 +47,15 @@ func (p *Proposer) prepare(proposal *Proposal) error {
 	proposal.Number++
 
 	for i := 0; i < p.majority(); i++ {
-		acceptorURL := p.acceptorURLs[i]
+		acceptorClient := p.acceptorClients[i]
 
-		promise, err := sendRPCRequest(acceptorURL, PrepareServiceMethod, proposal)
+		promise, err := acceptorClient.SendPrepare(proposal)
 		if err != nil {
-			// Use fibonacci sequence to space out retry attempts
-			waitMs := p.prepareFib() * 1
-			<-time.After(time.Duration(waitMs) * time.Millisecond)
-
 			continue
 		}
 
-		// Reset the fibonacci sequence
-		p.prepareFib = Fibonacci()
-
-		log.Printf("%s promises to accept proposal %s", acceptorURL, promise)
-
 		// Get the previous promise
-		previousPromise, ok := p.acceptorPromises[acceptorURL][proposal.Key]
+		previousPromise, ok := p.acceptorPromises[acceptorClient.GetName()][proposal.Key]
 
 		// Previous promise is equal or greater than the new proposal, continue
 		if ok && previousPromise.Number >= promise.Number {
@@ -82,7 +63,7 @@ func (p *Proposer) prepare(proposal *Proposal) error {
 		}
 
 		// Save the new promise
-		p.acceptorPromises[acceptorURL][proposal.Key] = promise
+		p.acceptorPromises[acceptorClient.GetName()][proposal.Key] = promise
 
 		// Update the proposal to the one with bigger number
 		if promise.Number > proposal.Number {
@@ -100,20 +81,13 @@ func (p *Proposer) prepare(proposal *Proposal) error {
 // responses, or is any value selected by the proposer if the responders
 // reported no proposals.
 func (p *Proposer) propose(proposal *Proposal) error {
-	for _, acceptorURL := range p.acceptorURLs {
-		accepted, err := sendRPCRequest(acceptorURL, ProposeServiceMethod, proposal)
+	for _, acceptorClient := range p.acceptorClients {
+		accepted, err := acceptorClient.SendPropose(proposal)
 		if err != nil {
-			// Use fibonacci sequence to space out retry attempts
-			waitMs := p.proposeFib() * 1
-			<-time.After(time.Duration(waitMs) * time.Millisecond)
-
 			continue
 		}
 
-		// Reset the fibonacci sequence
-		p.proposeFib = Fibonacci()
-
-		log.Printf("%s has accepted the proposal %s", acceptorURL, accepted)
+		log.Printf("%s has accepted the proposal %s", acceptorClient.GetName(), accepted)
 	}
 
 	return nil
@@ -121,7 +95,7 @@ func (p *Proposer) propose(proposal *Proposal) error {
 
 // majority returns simple majority of acceptor nodes
 func (p *Proposer) majority() int {
-	return len(p.acceptorURLs)/2 + 1
+	return len(p.acceptorClients)/2 + 1
 }
 
 // majorityReached returns true if number of matching promises from acceptors
@@ -144,21 +118,4 @@ func (p *Proposer) majorityReached(proposal *Proposal) bool {
 	}
 
 	return matches >= p.majority()
-}
-
-// sendRPCRequest is a generic function to make RPC call to acceptor's
-// prepare or promise service methods
-func sendRPCRequest(address, serviceMethod string, proposal *Proposal) (*Proposal, error) {
-	client, err := rpc.DialHTTP("tcp", address)
-	if err != nil {
-		return nil, err
-	}
-
-	var reply *Proposal
-	err = client.Call(serviceMethod, proposal, &reply)
-	if err != nil {
-		return nil, err
-	}
-
-	return reply, nil
 }

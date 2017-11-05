@@ -7,14 +7,9 @@ import (
 // Proposal represents a proposed value for specified key,
 // the actual agreed on value will be decided by the consensus algorithm
 type Proposal struct {
-	Key    string // key to identify the value
 	Number int    // proposal number used to decide which proposal to promise
-	Value  string // the actual value / data we store once proposal is accepted
-}
-
-// NewProposal creates a new instance of Proposal
-func NewProposal(key, value string) *Proposal {
-	return &Proposal{Key: key, Value: value}
+	Key    string // key to identify the value
+	Value  []byte // the actual value / data we store once proposal is accepted
 }
 
 // String returns a human readable representation

@@ -2,50 +2,27 @@ package paxos
 
 import (
 	"fmt"
-	"log"
-)
-
-const (
-	// PrepareServiceMethod ...
-	PrepareServiceMethod = "Acceptor.Prepare"
-	// ProposeServiceMethod ...
-	ProposeServiceMethod = "Acceptor.Propose"
 )
 
 // Acceptor ...
 type Acceptor struct {
-	Node
 	promisedProposals map[string]*Proposal
 	acceptedProposals map[string]*Proposal
 }
 
+// AcceptorClientInterface ...
+type AcceptorClientInterface interface {
+	GetName() string
+	SendPrepare(proposal *Proposal) (*Proposal, error)
+	SendPropose(proposal *Proposal) (*Proposal, error)
+}
+
 // NewAcceptor creates a new acceptor instance
-func NewAcceptor(id, host string, port int) *Acceptor {
+func NewAcceptor() *Acceptor {
 	return &Acceptor{
-		Node:              NewNode(id, host, port),
 		promisedProposals: make(map[string]*Proposal),
 		acceptedProposals: make(map[string]*Proposal),
 	}
-}
-
-// Prepare handles received preparation request from proposers
-func (a *Acceptor) Prepare(proposal *Proposal, reply *Proposal) error {
-	proposal, err := a.receivePrepare(proposal)
-	if err != nil {
-		return err
-	}
-	*reply = *proposal
-	return nil
-}
-
-// Propose handles received proposal request from proposers
-func (a *Acceptor) Propose(proposal *Proposal, reply *Proposal) error {
-	proposal, err := a.receiveProposal(proposal)
-	if err != nil {
-		return err
-	}
-	*reply = *proposal
-	return nil
 }
 
 // If an acceptor receives a prepare request with number n greater
@@ -53,14 +30,14 @@ func (a *Acceptor) Propose(proposal *Proposal, reply *Proposal) error {
 // then it responds to the request with a promise not to accept any more
 // proposals numbered less than n and with the highest-numbered proposal
 // (if any) that it has accepted.
-func (a *Acceptor) receivePrepare(proposal *Proposal) (*Proposal, error) {
+func (a *Acceptor) ReceivePrepare(proposal *Proposal) (*Proposal, error) {
 	// Do we already have a promise for this proposal
 	promised, ok := a.promisedProposals[proposal.Key]
 
 	// Ignore lesser or equally numbered proposals
-	if ok && promised.Number >= proposal.Number {
+	if ok && promised.Number > proposal.Number {
 		return nil, fmt.Errorf(
-			"Already promised to accept %s which is >= than requested %s",
+			"Already promised to accept %s which is > than requested %s",
 			promised,
 			proposal,
 		)
@@ -68,15 +45,14 @@ func (a *Acceptor) receivePrepare(proposal *Proposal) (*Proposal, error) {
 
 	// Promise to accept the proposal
 	a.promisedProposals[proposal.Key] = proposal
-	log.Printf("Promising to accept proposal %s", proposal)
 
 	return proposal, nil
 }
 
-// If an acceptor receives an accept request for a proposal numbered
+// If an acceptor receives a propose request for a proposal numbered
 // n, it accepts the proposal unless it has already responded to a prepare
 // request having a number greater than n.
-func (a *Acceptor) receiveProposal(proposal *Proposal) (*Proposal, error) {
+func (a *Acceptor) ReceivePropose(proposal *Proposal) (*Proposal, error) {
 	// Do we already have a promise for this proposal
 	promised, ok := a.promisedProposals[proposal.Key]
 

@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/RichardKnop/paxos"
+	"github.com/RichardKnop/paxos/cmd/agent"
 	"github.com/urfave/cli"
 )
 
@@ -47,7 +47,7 @@ func main() {
 				if len(c.StringSlice("peers")) == 0 {
 					return cli.NewExitError("Set at least one peer", 1)
 				}
-				agent := paxos.NewAgent(
+				agent := agent.New(
 					"", // ID
 					"", // host
 					c.Int("port"),
