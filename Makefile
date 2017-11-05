@@ -30,4 +30,4 @@ test-with-coverage:
 	#go tool cover -html=coverage-all.out
 
 ci:
-	test
+	make test
