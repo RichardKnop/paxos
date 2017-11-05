@@ -6,8 +6,8 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/RichardKnop/paxos/cmd/rpc"
 	"github.com/RichardKnop/paxos/paxos"
-	"github.com/RichardKnop/paxos/rpc"
 	"github.com/satori/go.uuid"
 )
 
