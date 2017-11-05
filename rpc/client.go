@@ -55,7 +55,7 @@ func makeRequest(to, serviceMethod string, proposal *paxos.Proposal) (*paxos.Pro
 		if err != nil {
 			// Use fibonacci sequence to space out retry attempts
 			waitSec := fib()
-			log.Printf("Retrying in %ds", waitSec)
+			log.Printf("Failed to dial %s. Retrying in %ds", to, waitSec)
 			<-time.After(time.Duration(waitSec) * time.Second)
 
 			continue

@@ -2,12 +2,13 @@ package paxos
 
 import (
 	"fmt"
+	"log"
 )
 
 // Acceptor ...
 type Acceptor struct {
-	promisedProposals map[string]*Proposal
-	acceptedProposals map[string]*Proposal
+	promised map[string]*Proposal
+	accepted map[string]*Proposal
 }
 
 // AcceptorClientInterface ...
@@ -20,8 +21,8 @@ type AcceptorClientInterface interface {
 // NewAcceptor creates a new acceptor instance
 func NewAcceptor() *Acceptor {
 	return &Acceptor{
-		promisedProposals: make(map[string]*Proposal),
-		acceptedProposals: make(map[string]*Proposal),
+		promised: make(map[string]*Proposal),
+		accepted: make(map[string]*Proposal),
 	}
 }
 
@@ -32,7 +33,7 @@ func NewAcceptor() *Acceptor {
 // (if any) that it has accepted.
 func (a *Acceptor) ReceivePrepare(proposal *Proposal) (*Proposal, error) {
 	// Do we already have a promise for this proposal
-	promised, ok := a.promisedProposals[proposal.Key]
+	promised, ok := a.promised[proposal.Key]
 
 	// Ignore lesser or equally numbered proposals
 	if ok && promised.Number > proposal.Number {
@@ -44,7 +45,9 @@ func (a *Acceptor) ReceivePrepare(proposal *Proposal) (*Proposal, error) {
 	}
 
 	// Promise to accept the proposal
-	a.promisedProposals[proposal.Key] = proposal
+	a.promised[proposal.Key] = proposal
+
+	log.Printf("Promised to accept %s", proposal)
 
 	return proposal, nil
 }
@@ -54,7 +57,7 @@ func (a *Acceptor) ReceivePrepare(proposal *Proposal) (*Proposal, error) {
 // request having a number greater than n.
 func (a *Acceptor) ReceivePropose(proposal *Proposal) (*Proposal, error) {
 	// Do we already have a promise for this proposal
-	promised, ok := a.promisedProposals[proposal.Key]
+	promised, ok := a.promised[proposal.Key]
 
 	// Ignore lesser numbered proposals
 	if ok && promised.Number > proposal.Number {
@@ -71,7 +74,12 @@ func (a *Acceptor) ReceivePropose(proposal *Proposal) (*Proposal, error) {
 	}
 
 	// Accept the proposal
-	a.acceptedProposals[proposal.Key] = proposal
+	a.accepted[proposal.Key] = proposal
+
+	log.Printf("Accepted %s", proposal)
+
+	// Truncate promises map
+	a.promised = make(map[string]*Proposal)
 
 	return proposal, nil
 }

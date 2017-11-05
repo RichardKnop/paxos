@@ -33,8 +33,6 @@ func (p *Proposer) Propose(proposal *Proposal) error {
 	log.Printf("Reached majority %d", p.majority())
 
 	// Stage 2: Propose the value agreed on by majority of acceptors
-	log.Printf("Sending final proposal %s", proposal)
-
 	return p.propose(proposal)
 }
 
@@ -45,6 +43,8 @@ func (p *Proposer) Propose(proposal *Proposal) error {
 func (p *Proposer) prepare(proposal *Proposal) error {
 	// Increment the proposal number
 	proposal.Number++
+
+	log.Printf("Proposing %s", proposal)
 
 	for i := 0; i < p.majority(); i++ {
 		acceptorClient := p.acceptorClients[i]
@@ -87,7 +87,13 @@ func (p *Proposer) propose(proposal *Proposal) error {
 			continue
 		}
 
-		log.Printf("%s has accepted the proposal %s", acceptorClient.GetName(), accepted)
+		log.Printf("%s has accepted %s", acceptorClient.GetName(), accepted)
+
+	}
+
+	// Truncate acceptor promises map
+	for _, acceptorClient := range p.acceptorClients {
+		p.acceptorPromises[acceptorClient.GetName()] = make(map[string]*Proposal)
 	}
 
 	return nil
