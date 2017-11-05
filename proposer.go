@@ -44,11 +44,8 @@ func (p *Proposer) Propose(proposal *Proposal) error {
 
 	// Stage 2: Propose the value agreed on by majority of acceptors
 	log.Printf("Sending final proposal %s", proposal)
-	if err := p.propose(proposal); err != nil {
-		return err
-	}
 
-	return nil
+	return p.propose(proposal)
 }
 
 // A proposer chooses a new proposal number n and sends a request to
