@@ -25,8 +25,6 @@ func (c *Client) GetName() string {
 
 // SendPrepare sends a prepare request to acceptor
 func (c *Client) SendPrepare(proposal *paxos.Proposal) (*paxos.Proposal, error) {
-	// fib := Fibonacci()
-
 	reply, err := makeRequest(c.url, AcceptorReceivePrepare, proposal)
 
 	return reply, err
@@ -34,8 +32,6 @@ func (c *Client) SendPrepare(proposal *paxos.Proposal) (*paxos.Proposal, error) 
 
 // SendPropose sends a propose request to acceptor
 func (c *Client) SendPropose(proposal *paxos.Proposal) (*paxos.Proposal, error) {
-	// fib := Fibonacci()
-
 	reply, err := makeRequest(c.url, AcceptorReceivePropose, proposal)
 
 	return reply, err
