@@ -50,10 +50,6 @@ dep ensure
 
 ### Supporting the project
 
-Become a patreon:
-
-[![http://patreon.com/richardknop][1]](http://patreon.com/richardknop)
-
-Or donate BTC to my wallet: `12iFVjQ5n3Qdmiai4Mp9EG93NSvDipyRKV`
+Donate BTC to my wallet if you find this project useful: `12iFVjQ5n3Qdmiai4Mp9EG93NSvDipyRKV`
 
 ![Donate BTC][2]
