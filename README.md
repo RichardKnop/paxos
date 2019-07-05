@@ -7,8 +7,6 @@ Golang implentation of [Paxos](https://pdos.csail.mit.edu/6.824/papers/paxos-sim
 ---
 
 * [First Steps](#first-steps)
-* [Development](#development)
-  * [Dependencies](#dependencies)
 
 ### First Steps
 
@@ -23,16 +21,4 @@ Run multiple test agents in different tabs to test the algorithm:
 ```
 go run cmd/main.go run --port 1234 --peers 127.0.0.1:2345
 go run cmd/main.go run --port 2345 --peers 127.0.0.1:1234
-```
-
-### Development
-
-#### Dependencies
-
-According to [Go 1.5 Vendor experiment](https://docs.google.com/document/d/1Bz5-UB7g2uPBdOx-rw5t9MxJwkfpx90cqG9AFL0JAYo), all dependencies are stored in the vendor directory. This approach is called `vendoring` and is the best practice for Go projects to lock versions of dependencies in order to achieve reproducible builds.
-
-This project uses [dep](https://github.com/golang/dep) for dependency management. To update dependencies during development:
-
-```sh
-dep ensure
 ```
