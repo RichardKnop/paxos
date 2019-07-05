@@ -6,11 +6,6 @@ fmt:
 		go fmt $$pkg; \
 	done;
 
-golint:
-	for pkg in ${PACKAGES}; do \
-		golint $$pkg; \
-	done;
-
 test:
 	TEST_FAILED= ; \
 	for pkg in ${PACKAGES}; do \

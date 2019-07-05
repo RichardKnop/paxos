@@ -10,14 +10,8 @@ env:
 services:
   - docker
 
-install:
-  - go get -u github.com/golang/lint/golint
-
 script:
   - make ci
-
-after_script:
-  - make golint
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
